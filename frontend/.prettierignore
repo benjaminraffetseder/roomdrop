@@ -1,0 +1,7 @@
+node_modules/
+dist/
+bindings/
+coverage/
+package-lock.json
+*.tsbuildinfo
+package.json.md5

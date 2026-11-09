@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Name=RoomDrop
+Comment=Share files on your local network.
+# The Exec line includes %u to pass the URL to the application
+Exec=/usr/bin/roomdrop %u
+Terminal=false
+Type=Application
+Icon=roomdrop
+Categories=Utility;
+StartupWMClass=roomdrop

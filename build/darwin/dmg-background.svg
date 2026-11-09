@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="540" height="380" viewBox="0 0 540 380">
+  <rect width="540" height="380" fill="#f7f8f3"/>
+  <svg x="28" y="25" width="30" height="30" viewBox="0 0 64 64">
+    <rect width="64" height="64" rx="16" fill="#e1e9d9"/>
+    <g fill="none" stroke="#3f6247" stroke-width="3.25" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M26 50H20Q14 50 14 44V20Q14 14 20 14H44Q50 14 50 20V44Q50 50 44 50H38"/>
+      <path d="M21 27Q32 17 43 27M26 33Q32 27.5 38 33"/>
+    </g>
+    <circle cx="32" cy="39" r="2.25" fill="#3f6247"/>
+  </svg>
+  <text x="69" y="46" fill="#293c30" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="19" font-weight="600" letter-spacing="-.6">RoomDrop</text>
+  <path d="M28 78H512" stroke="#e3e6dc"/>
+  <g fill="none" stroke="#7d9570" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M249 190H291M282 181L291 190L282 199"/>
+  </g>
+  <text x="270" y="310" text-anchor="middle" fill="#697c60" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13">Drag RoomDrop to Applications</text>
+</svg>

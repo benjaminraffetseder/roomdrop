@@ -1,0 +1,360 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@theme inline {
+  --font-sans:
+    "Segoe UI Variable", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  --font-mono: monospace;
+  --font-code: "Cascadia Code", Consolas, monospace;
+  --radius-sm: 4px;
+  --radius-md: var(--radius);
+  --radius-lg: var(--radius);
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 24px;
+  --radius-4xl: 32px;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary-border: var(--primary-border);
+  --color-primary-hover: var(--primary-hover);
+  --color-outline-border: var(--outline-border);
+  --color-outline-foreground: var(--outline-foreground);
+  --color-outline-hover: var(--outline-hover);
+  --color-outline-hover-border: var(--outline-hover-border);
+  --color-secondary-border: var(--secondary-border);
+  --color-secondary-active: var(--secondary-active);
+  --color-secondary-active-border: var(--secondary-active-border);
+  --color-icon-foreground: var(--icon-foreground);
+  --color-link-foreground: var(--link-foreground);
+  --color-input-surface: var(--input-surface);
+  --color-input-foreground: var(--input-foreground);
+  --color-switch-off: var(--switch-off);
+  --color-switch-on: var(--switch-on);
+  --color-switch-thumb: var(--switch-thumb);
+  --color-stop: var(--stop);
+  --color-stop-border: var(--stop-border);
+  --color-stop-foreground: var(--stop-foreground);
+  --color-stop-icon: var(--stop-icon);
+  --color-stop-hover: var(--stop-hover);
+  --color-stop-hover-border: var(--stop-hover-border);
+  --color-stop-hover-foreground: var(--stop-hover-foreground);
+  --color-description: var(--description);
+  --color-section-meta: var(--section-meta);
+  --color-section-heading: var(--section-heading);
+  --color-setting-foreground: var(--setting-foreground);
+  --color-setting-icon: var(--setting-icon);
+  --color-setting-description: var(--setting-description);
+  --color-separator-label: var(--separator-label);
+  --color-file: var(--file);
+  --color-file-icon: var(--file-icon);
+  --color-file-name: var(--file-name);
+  --color-file-meta: var(--file-meta);
+  --color-pdf: var(--pdf);
+  --color-pdf-foreground: var(--pdf-foreground);
+  --color-overlay: var(--overlay);
+  --color-dialog-border: var(--dialog-border);
+  --color-dialog-description: var(--dialog-description);
+  --color-settings-trigger-foreground: var(--settings-trigger-foreground);
+  --color-settings-icon-surface: var(--settings-icon-surface);
+  --color-settings-icon: var(--settings-icon);
+  --color-settings-step: var(--settings-step);
+  --color-settings-step-number: var(--settings-step-number);
+  --color-settings-border: var(--settings-border);
+  --color-settings-foreground: var(--settings-foreground);
+  --color-help-icon: var(--help-icon);
+  --color-help-foreground: var(--help-foreground);
+  --color-fineprint: var(--fineprint);
+  --color-settings-footer: var(--settings-footer);
+  --color-share-border: var(--share-border);
+  --color-share-description: var(--share-description);
+  --color-share-link: var(--share-link);
+  --color-share-link-border: var(--share-link-border);
+  --color-share-link-icon: var(--share-link-icon);
+  --color-share-link-foreground: var(--share-link-foreground);
+  --color-share-expiry: var(--share-expiry);
+  --color-countdown: var(--countdown);
+  --color-badge: var(--badge);
+  --color-badge-foreground: var(--badge-foreground);
+  --color-qr-foreground: var(--qr-foreground);
+  --color-qr-background: var(--qr-background);
+  --color-qr-border: var(--qr-border);
+  --color-activity: var(--activity);
+  --color-activity-border: var(--activity-border);
+  --color-activity-icon: var(--activity-icon);
+  --color-activity-foreground: var(--activity-foreground);
+  --color-activity-meta: var(--activity-meta);
+  --color-activity-status: var(--activity-status);
+  --color-progress-track: var(--progress-track);
+  --color-progress: var(--progress);
+  --color-success: var(--success);
+  --color-success-border: var(--success-border);
+  --color-success-foreground: var(--success-foreground);
+  --color-complete: var(--complete);
+  --color-complete-border: var(--complete-border);
+  --color-complete-foreground: var(--complete-foreground);
+  --color-ended: var(--ended);
+  --color-ended-border: var(--ended-border);
+  --color-ended-foreground: var(--ended-foreground);
+  --color-ended-meta: var(--ended-meta);
+  --color-drop: var(--drop);
+  --color-drop-border: var(--drop-border);
+  --color-drop-detail: var(--drop-detail);
+  --color-drop-active: var(--drop-active);
+  --color-drop-active-border: var(--drop-active-border);
+  --color-drop-description: var(--drop-description);
+  --color-art-folder-back: var(--art-folder-back);
+  --color-art-folder-back-border: var(--art-folder-back-border);
+  --color-art-file: var(--art-file);
+  --color-art-file-border: var(--art-file-border);
+  --color-art-file-line: var(--art-file-line);
+  --color-art-folder-front: var(--art-folder-front);
+  --color-art-folder-front-border: var(--art-folder-front-border);
+  --color-art-foreground: var(--art-foreground);
+  --color-art-spark: var(--art-spark);
+  --color-warning: var(--warning);
+  --color-warning-border: var(--warning-border);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-error: var(--error);
+  --color-error-border: var(--error-border);
+  --color-error-foreground: var(--error-foreground);
+  --color-selection: var(--selection);
+  --color-scrollbar: var(--scrollbar);
+  --color-scrollbar-hover: var(--scrollbar-hover);
+  --shadow-control: var(--shadow-control-value);
+  --shadow-switch: var(--shadow-switch-value);
+  --shadow-art: var(--shadow-art-value);
+  --shadow-share: var(--shadow-share-value);
+  --shadow-dialog: var(--shadow-dialog-value);
+}
+
+:root {
+  --radius: 8px;
+
+  /* Core shadcn theme */
+  --background: #f7f8f3;
+  --foreground: #293c30;
+  --card: #ffffff;
+  --card-foreground: var(--foreground);
+  --popover: #fbfcf8;
+  --popover-foreground: #4b6042;
+  --primary: #56784c;
+  --primary-foreground: var(--card);
+  --secondary: var(--card);
+  --secondary-foreground: #657957;
+  --muted: #e9ece2;
+  --muted-foreground: #7b876f;
+  --accent: #e8efdf;
+  --accent-foreground: #3f613f;
+  --destructive: #ad5b49;
+  --destructive-foreground: var(--card);
+  --border: #e3e6dc;
+  --input: #dce2d3;
+  --ring: #6a8d61;
+
+  /* Controls */
+  --primary-border: #4e7046;
+  --primary-hover: #44683a;
+  --outline-border: #d9dfce;
+  --outline-foreground: #496344;
+  --outline-hover: #f9fcf4;
+  --outline-hover-border: #a7b69b;
+  --secondary-border: #dae1d0;
+  --secondary-active: #e7efde;
+  --secondary-active-border: #c2d2b2;
+  --icon-foreground: #8b9284;
+  --link-foreground: #76836b;
+  --input-surface: #f5f7ef;
+  --input-foreground: #627355;
+  --switch-off: #dfe4d6;
+  --switch-on: #678654;
+  --switch-thumb: var(--card);
+  --stop: #f7f6f1;
+  --stop-border: #e3e2d7;
+  --stop-foreground: #8a8c79;
+  --stop-icon: #a09e8b;
+  --stop-hover: #f3e9e2;
+  --stop-hover-border: #dac5b5;
+  --stop-hover-foreground: #a16e55;
+
+  /* Content and session settings */
+  --description: #687460;
+  --section-meta: #758268;
+  --section-heading: #5e7053;
+  --setting-foreground: #55634e;
+  --setting-icon: #8a967e;
+  --setting-description: #77816d;
+  --separator-label: #a0a691;
+  --file: #ebefe4;
+  --file-icon: #899d72;
+  --file-name: #5a6851;
+  --file-meta: #77846c;
+  --pdf: #f1eae0;
+  --pdf-foreground: #b18c77;
+
+  /* Settings dialog */
+  --overlay: #26332140;
+  --dialog-border: #dfe5d4;
+  --dialog-description: #8a9580;
+  --settings-trigger-foreground: #969d8f;
+  --settings-icon-surface: #e9efdf;
+  --settings-icon: #889f73;
+  --settings-step: #7f8c73;
+  --settings-step-number: #a5b298;
+  --settings-border: #e2e8d8;
+  --settings-foreground: #758667;
+  --help-icon: #93a280;
+  --help-foreground: #687d57;
+  --fineprint: #768367;
+  --settings-footer: #a4b093;
+
+  /* Sharing and transfer activity */
+  --share-border: #dce4d3;
+  --share-description: #738366;
+  --share-link: #f4f6ef;
+  --share-link-border: #e0e6d7;
+  --share-link-icon: #92a080;
+  --share-link-foreground: #7c8b6c;
+  --share-expiry: #76876a;
+  --countdown: #7b8d6c;
+  --badge: #eef3e7;
+  --badge-foreground: #849776;
+  --qr-foreground: #293f30;
+  --qr-background: var(--card);
+  --qr-border: #e6ebde;
+  --activity: #eef1e7;
+  --activity-border: #e3e9d8;
+  --activity-icon: #a1af91;
+  --activity-foreground: #65775a;
+  --activity-meta: #78896b;
+  --activity-status: #7f956d;
+  --progress-track: #e9eedf;
+  --progress: #8ca676;
+  --success: #e8efde;
+  --success-border: #d8e5ca;
+  --success-foreground: #6c8c55;
+  --complete: #e5eedc;
+  --complete-border: #d7e3cc;
+  --complete-foreground: #789b60;
+  --ended: #ecefe5;
+  --ended-border: #e1e6d8;
+  --ended-foreground: #97a48a;
+  --ended-meta: #89997b;
+
+  /* Drop target and illustration */
+  --drop: #f0f3e9;
+  --drop-border: #bfcdb2;
+  --drop-detail: #e8eddf;
+  --drop-active: #e3ecd9;
+  --drop-active-border: #61804e;
+  --drop-description: #707c64;
+  --art-folder-back: #d8e4c7;
+  --art-folder-back-border: #9eb28b;
+  --art-file: #fafbf6;
+  --art-file-border: #c5cebc;
+  --art-file-line: #dce3d4;
+  --art-folder-front: #e0e9d4;
+  --art-folder-front-border: #a1b78c;
+  --art-foreground: #6f8a5b;
+  --art-spark: #a1b58b;
+
+  /* Feedback and native scrollbars */
+  --warning: #f0efe5;
+  --warning-border: #e7e1d0;
+  --warning-foreground: #8b805f;
+  --error: #fbefea;
+  --error-border: #ecd9cf;
+  --error-foreground: #a06049;
+  --selection: #d9e8d3;
+  --scrollbar: #d0d7c5;
+  --scrollbar-hover: #a7b69b;
+
+  /* Shadows */
+  --shadow-control-value: 0 1px 2px #35422c05;
+  --shadow-switch-value: 0 1px 3px #30422718;
+  --shadow-art-value: 0 4px 5px #536a4110;
+  --shadow-share-value: 0 2px 4px #31452c03;
+  --shadow-dialog-value: 0 20px 60px #1a2b1825;
+}
+
+@custom-variant narrow (@media (max-width: 500px));
+@custom-variant wide (@media (min-width: 800px));
+@custom-variant compact (@media (max-height: 790px) and (min-width: 501px));
+
+@layer base {
+  :root {
+    @apply bg-background font-sans text-foreground antialiased scheme-light;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply m-0 min-w-[360px];
+  }
+
+  svg {
+    @apply shrink-0;
+  }
+
+  ::selection {
+    @apply bg-selection;
+  }
+
+  /* Native scrollbars are shared by the window, lists, and portalled controls. */
+  @supports not selector(::-webkit-scrollbar) {
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar) transparent;
+    }
+  }
+
+  ::-webkit-scrollbar {
+    @apply size-2;
+  }
+
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply min-h-8 min-w-8 rounded-full border-2 border-transparent bg-scrollbar bg-clip-padding;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-scrollbar-hover;
+  }
+
+  ::-webkit-scrollbar-button {
+    @apply hidden size-0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition-duration: 0ms !important;
+      animation-duration: 1ms !important;
+      animation-iteration-count: 1 !important;
+    }
+  }
+}
