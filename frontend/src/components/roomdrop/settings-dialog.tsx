@@ -15,7 +15,10 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import type { RoomDropController } from "@/hooks/use-roomdrop"
+import { errorMessage } from "@/lib/format"
+import { CheckForUpdates } from "@wails/app"
 import { RefreshCw, Settings, Wifi } from "lucide-react"
+import { useState } from "react"
 import thirdPartyNotices from "../../../../THIRD_PARTY_NOTICES.md?raw"
 import { version } from "../../../package.json"
 
@@ -38,6 +41,20 @@ export function SettingsDialog({
   >
   active: boolean
 }) {
+  const [checkingUpdates, setCheckingUpdates] = useState(false)
+  const [updateError, setUpdateError] = useState("")
+  async function checkForUpdates() {
+    if (!app.desktop || checkingUpdates) return
+    setCheckingUpdates(true)
+    setUpdateError("")
+    try {
+      await CheckForUpdates()
+    } catch (error) {
+      setUpdateError(errorMessage(error))
+    } finally {
+      setCheckingUpdates(false)
+    }
+  }
   const networks = app.networks.map((network) => ({
     value: network.address,
     label: `${network.name} · ${network.address}`,
@@ -156,9 +173,23 @@ export function SettingsDialog({
             {thirdPartyNotices}
           </pre>
         </details>
-        <div className="mt-[25px] flex justify-between gap-2.5 text-[8px] text-settings-footer narrow:flex-wrap">
+        <div className="mt-[25px] flex items-center justify-between gap-2.5 text-[8px] text-settings-footer narrow:flex-wrap">
           <span>RoomDrop {version}</span>
+          <Button
+            variant="link"
+            size="none"
+            disabled={!app.desktop || checkingUpdates}
+            aria-busy={checkingUpdates}
+            onClick={() => void checkForUpdates()}
+          >
+            {checkingUpdates ? "Checking for updates…" : "Check for updates"}
+          </Button>
         </div>
+        {updateError && (
+          <p role="alert" className="mt-2 text-[10px] text-destructive">
+            {updateError}
+          </p>
+        )}
       </DialogContent>
     </Dialog>
   )

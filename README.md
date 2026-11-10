@@ -24,9 +24,17 @@ Password protection applies to downloads; filenames and sizes remain visible on 
 
 ## System tray
 
-RoomDrop adds its icon to the system tray while running. Click it to reopen the window, including when minimized. Right-click for **Open RoomDrop**, **Stop sharing**, and **Quit RoomDrop**. On Windows, the icon may appear in the tray overflow menu.
+RoomDrop adds its icon to the system tray while running. Click it to reopen the window, including when minimized. Right-click for **Open RoomDrop**, **Stop sharing**, **Check for updates…**, and **Quit RoomDrop**. On Windows, the icon may appear in the tray overflow menu.
 
 Closing the window stops sharing but keeps the tray icon available. **Quit RoomDrop** stops any transfers and exits the app.
+
+## Updates
+
+Choose **Check for updates** in Settings or the tray menu. RoomDrop checks this repository's latest stable GitHub Release and opens the built-in Wails updater window with release notes, download progress, and any errors. Downloads must match the release's `SHA256SUMS.txt` entry before they are staged. Choose **Restart & Apply** when ready; restarting stops active sharing. Checks run only when requested and require internet access. Browser previews cannot update the native app.
+
+The installation directory must be writable by your user. On Windows, use a portable copy or a per-user installation (`wails3 task windows:package INSTALL_SCOPE=user`). Linux AppImages update the original AppImage; standalone Linux binaries update in place. Installations managed by a system package manager should be updated through that package manager.
+
+Releases predating this feature need one manual upgrade to a build containing the updater.
 
 ## Local network notes
 
@@ -35,7 +43,7 @@ Closing the window stops sharing but keeps the tray icon available. **Quit RoomD
 - Links contain a cryptographically random 256-bit token. Anyone with that link on the reachable local network can download unless password protection is enabled. Keep it private.
 - Transfers use local HTTP and are **not encrypted**, including download passwords. Use a trusted network. RoomDrop rejects public source addresses, but this does not authenticate devices or protect against an on-path observer.
 - Keep RoomDrop open and the computer awake while sharing. Keep single source files unchanged during a session. Symbolic links and special files are rejected; choose their original files instead.
-- Activity and selections are held only in memory. No database, accounts, external fonts, analytics, or cloud services are used.
+- Activity and selections are held only in memory. No database, accounts, external fonts, or analytics are used. File transfers stay on the local network; manual update checks and downloads contact GitHub Releases.
 
 ## Develop
 
@@ -67,7 +75,7 @@ The UI uses shadcn/ui with Base UI primitives. Its configuration is in `frontend
 
 ## Versioning
 
-The `version` in `frontend/package.json` is the single source of truth. Settings reads it directly; the npm lockfile and native packaging metadata are synchronized automatically before builds and frontend development.
+The `version` in `frontend/package.json` is the single source of truth. Settings reads it directly and the Go executable embeds it for update comparisons; the npm lockfile and native packaging metadata are synchronized automatically before builds and frontend development.
 
 To bump the version and synchronize all metadata without creating a Git commit or tag, run from `frontend/`:
 
@@ -76,6 +84,26 @@ npm version 0.3.0 --no-git-tag-version
 ```
 
 Use a numeric `major.minor.patch` release version for native packaging. If you edit the version directly, run `node scripts/sync-version.mjs` from the repository root. `node scripts/sync-version.mjs --check` verifies that the checked-in metadata matches without changing files. The synchronizer updates only version fields and preserves custom packaging settings.
+
+## Preparing GitHub Releases
+
+After bumping the version, run `wails3 task release:updater` on each target platform. Windows and Linux use the host architecture by default; pass `ARCH=arm64` or `ARCH=amd64` when cross-building. macOS must run on a Mac and builds a universal `.app` ZIP for both architectures. Outputs are collected in `bin/release/v<version>/`.
+
+The updater accepts these asset names (using `0.3.0` as an example):
+
+| Installation | Update asset |
+| --- | --- |
+| Windows x64 | `RoomDrop-v0.3.0-windows-amd64.exe` |
+| Windows ARM64 | `RoomDrop-v0.3.0-windows-arm64.exe` |
+| macOS Intel or Apple Silicon | `RoomDrop-v0.3.0-macos-universal.zip` |
+| Linux standalone | `RoomDrop-v0.3.0-linux-amd64` (or `arm64`) |
+| Linux AppImage | `RoomDrop-v0.3.0-linux-amd64.AppImage` (or `arm64`) |
+
+The macOS ZIP must contain exactly one `.app`. Build AppImages separately with the existing Linux packaging tasks. Installers, portable archives, DMGs, `.deb`, `.rpm`, signatures, and checksum sidecars are excluded from update selection. Keep publishing conventional packages for first-time installations; the Linux distribution tarball containing documentation cannot serve as an update payload.
+
+Collect all platforms' assets into the same `bin/release/v<version>/` directory, then run `node scripts/prepare-update.mjs checksums` to regenerate one `SHA256SUMS.txt` covering every asset. Run this **after** any code signing or notarization has changed the packaged bytes. Upload those exact files and the checksum file together to a GitHub Release tagged `v<version>` in `benjaminraffetseder/roomdrop`. Publish only after every intended update asset is present. Drafts and prereleases are ignored.
+
+SHA-256 verifies integrity against GitHub's release assets; this setup does not pin a separate publisher signing key. See the [Wails updater guide](https://wails.io/guides/updater/) for signature verification.
 
 ## Checks
 

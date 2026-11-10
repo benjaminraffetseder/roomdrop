@@ -4,7 +4,10 @@ import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, expect, it, vi } from "vitest"
 import { version } from "../package.json"
-import { file, sharing, wifi } from "./fixtures"
+import { deferred, file, sharing, wifi } from "./fixtures"
+
+const native = vi.hoisted(() => ({ CheckForUpdates: vi.fn() }))
+vi.mock("@wails/app", () => native)
 
 const mock = vi.hoisted(() => ({
   controller: null as RoomDropController | null,
@@ -12,6 +15,7 @@ const mock = vi.hoisted(() => ({
 vi.mock("@/hooks/use-roomdrop", () => ({ useRoomDrop: () => mock.controller }))
 
 beforeEach(() => {
+  native.CheckForUpdates.mockReset().mockResolvedValue(undefined)
   mock.controller = {
     desktop: true,
     files: [],
@@ -41,6 +45,38 @@ beforeEach(() => {
     remove: vi.fn(),
     copy: vi.fn(),
   }
+})
+
+it("opens the native updater, prevents repeated checks and allows retry after failure", async () => {
+  const user = userEvent.setup()
+  const pending = deferred<void>()
+  native.CheckForUpdates.mockReturnValueOnce(pending.promise)
+  render(<App />)
+  await user.click(screen.getByRole("button", { name: "Settings" }))
+  await user.click(screen.getByRole("button", { name: "Check for updates" }))
+  const checking = screen.getByRole("button", { name: "Checking for updates…" })
+  expect(checking.hasAttribute("disabled")).toBe(true)
+  await user.click(checking)
+  expect(native.CheckForUpdates).toHaveBeenCalledTimes(1)
+  pending.reject(new Error("Could not reach GitHub. Try again."))
+  expect(await screen.findByRole("alert")).toHaveProperty(
+    "textContent",
+    "Could not reach GitHub. Try again.",
+  )
+  await user.click(screen.getByRole("button", { name: "Check for updates" }))
+  await waitFor(() => expect(native.CheckForUpdates).toHaveBeenCalledTimes(2))
+  expect(screen.queryByRole("alert")).toBeNull()
+})
+
+it("disables update checks in the browser preview", async () => {
+  const user = userEvent.setup()
+  mock.controller!.desktop = false
+  render(<App />)
+  await user.click(screen.getByRole("button", { name: "Settings" }))
+  const button = screen.getByRole("button", { name: "Check for updates" })
+  expect(button.hasAttribute("disabled")).toBe(true)
+  await user.click(button)
+  expect(native.CheckForUpdates).not.toHaveBeenCalled()
 })
 
 it("opens Settings with the keyboard, traps focus, expands licenses and restores focus on Escape", async () => {

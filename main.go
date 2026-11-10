@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"log"
 
@@ -28,6 +29,9 @@ func main() {
 			ApplicationShouldTerminateAfterLastWindowClosed: false,
 		},
 	})
+	if err := configureUpdater(app); err != nil {
+		log.Fatal(err)
+	}
 
 	window := app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:            "RoomDrop",
@@ -65,6 +69,13 @@ func main() {
 	})
 	menu.Add("Stop sharing").OnClick(func(_ *application.Context) {
 		service.manager.Stop()
+	})
+	menu.Add("Check for updates…").OnClick(func(_ *application.Context) {
+		go func() {
+			if err := service.CheckForUpdates(context.Background()); err != nil {
+				app.Logger.Error("Check for updates", "error", err)
+			}
+		}()
 	})
 	menu.AddSeparator()
 	menu.Add("Quit RoomDrop").OnClick(func(_ *application.Context) {

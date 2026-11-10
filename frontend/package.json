@@ -16,7 +16,7 @@
     "build:dev": "tsc -b && vite build --mode development --minify false",
     "typecheck": "tsc -b",
     "version": "node ../scripts/sync-version.mjs",
-    "test": "node --test tests/network-preference.test.mjs ../scripts/sync-version.test.mjs && vitest run",
+    "test": "node --test tests/network-preference.test.mjs ../scripts/sync-version.test.mjs ../scripts/prepare-update.test.mjs && vitest run",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "npm run lint -- --fix",
     "format": "prettier . --write",

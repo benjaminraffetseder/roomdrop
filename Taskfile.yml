@@ -24,6 +24,12 @@ tasks:
     cmds:
       - task: '{{.GOOS}}:package'
 
+  release:updater:
+    summary: Builds update assets and SHA256SUMS.txt in bin/release/v<version>
+    cmds:
+      - task: '{{if eq .GOOS "darwin"}}darwin:package:universal{{else}}{{.GOOS}}:build{{end}}'
+      - node scripts/prepare-update.mjs "{{.GOOS}}" "{{.ARCH | default ARCH}}"
+
   run:
     summary: Runs the application
     cmds:

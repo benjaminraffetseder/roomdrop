@@ -15,9 +15,10 @@ import (
 // App exposes native file selection and sharing. The LAN server never exposes
 // these methods: it can only serve the current session's selected payload.
 type App struct {
-	manager *share.Manager
-	mu      sync.Mutex
-	files   []share.Item
+	manager  *share.Manager
+	mu       sync.Mutex
+	files    []share.Item
+	updateMu sync.Mutex
 }
 
 func NewApp() *App { return &App{manager: share.NewManager()} }
