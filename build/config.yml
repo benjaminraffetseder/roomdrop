@@ -12,7 +12,7 @@ info:
   description: "Share files on your local network."
   copyright: "Copyright 2026 Benjamin Raffetseder"
   comments: "Temporary local file sharing."
-  version: "0.3.0"
+  version: "0.4.0"
   # cfBundleIconName: "appicon" # The macOS icon name in Assets.car icon bundles (optional)
   #                               # Should match the name of your .icon file without the extension
   #                               # If not set and Assets.car exists, defaults to "appicon"

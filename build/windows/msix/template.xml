@@ -17,7 +17,7 @@
         PackageDisplayName="RoomDrop"
         PublisherName="CN=RoomDrop"
         PublisherDisplayName="RoomDrop"
-        Version="0.3.0.0"
+        Version="0.4.0.0"
         PackageDescription="Share files on your local network. No cloud, no accounts.">
         <Capabilities>
             <Capability Name="runFullTrust" />
