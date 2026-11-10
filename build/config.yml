@@ -1,6 +1,7 @@
 # This file contains the configuration for this project.
 # When you update `info` or `fileAssociations`, run `wails3 task common:update:build-assets` to update the assets.
 # Note that this will overwrite any changes you have made to the assets.
+# The app version is synchronized from frontend/package.json by scripts/sync-version.mjs.
 version: '3'
 
 # This information is used to generate the build assets.
@@ -11,7 +12,7 @@ info:
   description: "Share files on your local network."
   copyright: "Copyright 2026 Benjamin Raffetseder"
   comments: "Temporary local file sharing."
-  version: "0.1.0"
+  version: "0.2.0"
   # cfBundleIconName: "appicon" # The macOS icon name in Assets.car icon bundles (optional)
   #                               # Should match the name of your .icon file without the extension
   #                               # If not set and Assets.car exists, defaults to "appicon"

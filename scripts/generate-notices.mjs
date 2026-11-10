@@ -47,7 +47,6 @@ const packages = Object.entries(lock.packages)
 // These packages ship CSS even though their build tools are dev dependencies.
 packages.push(
   "node_modules/tailwindcss",
-  "node_modules/shadcn",
   "node_modules/tw-animate-css",
 )
 for (const directory of [...new Set(packages)].sort()) {

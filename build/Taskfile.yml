@@ -1,6 +1,13 @@
 version: '3'
 
 tasks:
+  sync:version:
+    summary: Syncs native packaging versions from frontend/package.json
+    run: once
+    dir: '{{.ROOT_DIR}}'
+    cmds:
+      - node scripts/sync-version.mjs
+
   go:mod:tidy:
     summary: Runs `go mod tidy`
     internal: true
@@ -13,6 +20,8 @@ tasks:
   install:frontend:deps:
     summary: Install frontend dependencies
     run: once
+    deps:
+      - task: sync:version
     cmds:
       - task: install:frontend:deps:{{.PACKAGE_MANAGER}}
 
@@ -197,6 +206,7 @@ tasks:
     summary: Updates the build assets
     dir: build
     cmds:
+      - task: sync:version
       - wails3 update build-assets -name "{{.APP_NAME}}" -binaryname "{{.APP_NAME}}" -config config.yml -dir .
 
   build:server:

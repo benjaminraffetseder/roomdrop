@@ -65,6 +65,18 @@ A plain browser displays the interface with sharing controls disabled. Real loca
 
 The UI uses shadcn/ui with Base UI primitives. Its configuration is in `frontend/components.json`; theme colors and shadows live in `frontend/src/styles.css`. From `frontend/`, use `npx shadcn@latest add <component>` to add components, or `npx shadcn@latest add <component> --diff` to review upstream changes to an existing component.
 
+## Versioning
+
+The `version` in `frontend/package.json` is the single source of truth. Settings reads it directly; the npm lockfile and native packaging metadata are synchronized automatically before builds and frontend development.
+
+To bump the version and synchronize all metadata without creating a Git commit or tag, run from `frontend/`:
+
+```sh
+npm version 0.3.0 --no-git-tag-version
+```
+
+Use a numeric `major.minor.patch` release version for native packaging. If you edit the version directly, run `node scripts/sync-version.mjs` from the repository root. `node scripts/sync-version.mjs --check` verifies that the checked-in metadata matches without changing files. The synchronizer updates only version fields and preserves custom packaging settings.
+
 ## Checks
 
 From the root:
@@ -72,6 +84,7 @@ From the root:
 ```sh
 go test . ./internal/...
 go vet . ./internal/...
+node scripts/sync-version.mjs --check
 ```
 
 From `frontend/`, after generating bindings:

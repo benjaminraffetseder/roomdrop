@@ -17,6 +17,7 @@ import {
 import type { RoomDropController } from "@/hooks/use-roomdrop"
 import { RefreshCw, Settings, Wifi } from "lucide-react"
 import thirdPartyNotices from "../../../../THIRD_PARTY_NOTICES.md?raw"
+import { version } from "../../../package.json"
 
 const helpStep =
   "mt-3 flex items-baseline gap-3 text-[11px] leading-[1.7] text-settings-step"
@@ -156,7 +157,7 @@ export function SettingsDialog({
           </pre>
         </details>
         <div className="mt-[25px] flex justify-between gap-2.5 text-[8px] text-settings-footer narrow:flex-wrap">
-          <span>RoomDrop 0.1.0</span>
+          <span>RoomDrop {version}</span>
         </div>
       </DialogContent>
     </Dialog>

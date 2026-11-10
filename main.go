@@ -31,9 +31,9 @@ func main() {
 
 	window := app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:            "RoomDrop",
-		Width:            660,
+		Width:            450,
 		Height:           740,
-		MinWidth:         460,
+		MinWidth:         450,
 		MinHeight:        620,
 		EnableFileDrop:   true,
 		BackgroundColour: application.NewRGB(247, 248, 243),

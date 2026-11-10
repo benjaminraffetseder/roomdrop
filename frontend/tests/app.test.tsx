@@ -3,6 +3,7 @@ import type { RoomDropController } from "@/hooks/use-roomdrop"
 import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, expect, it, vi } from "vitest"
+import { version } from "../package.json"
 import { file, sharing, wifi } from "./fixtures"
 
 const mock = vi.hoisted(() => ({
@@ -49,6 +50,7 @@ it("opens Settings with the keyboard, traps focus, expands licenses and restores
   trigger.focus()
   await user.keyboard("{Enter}")
   const dialog = await screen.findByRole("dialog", { name: "Settings" })
+  expect(within(dialog).getByText(`RoomDrop ${version}`)).toBeTruthy()
   await waitFor(() =>
     expect(dialog.contains(document.activeElement)).toBe(true),
   )
