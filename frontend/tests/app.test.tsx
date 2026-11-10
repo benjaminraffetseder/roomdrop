@@ -4,7 +4,7 @@ import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, expect, it, vi } from "vitest"
 import { version } from "../package.json"
-import { deferred, file, sharing, wifi } from "./fixtures"
+import { deferred, file, receiving, sharing, wifi } from "./fixtures"
 
 const native = vi.hoisted(() => ({ CheckForUpdates: vi.fn() }))
 vi.mock("@wails/app", () => native)
@@ -18,6 +18,11 @@ beforeEach(() => {
   native.CheckForUpdates.mockReset().mockResolvedValue(undefined)
   mock.controller = {
     desktop: true,
+    mode: "send",
+    setMode: vi.fn(),
+    destination: "",
+    chooseReceiveFolder: vi.fn(),
+    startReceive: vi.fn(),
     files: [],
     session: null,
     networks: [wifi],
@@ -45,6 +50,80 @@ beforeEach(() => {
     remove: vi.fn(),
     copy: vi.fn(),
   }
+})
+
+it("switches modes with the keyboard and requires a destination before receiving", async () => {
+  const user = userEvent.setup()
+  const view = render(<App />)
+  screen.getByRole("tab", { name: "Send" }).focus()
+  await user.keyboard("{ArrowRight}")
+  expect(document.activeElement).toBe(
+    screen.getByRole("tab", { name: "Receive" }),
+  )
+  await user.keyboard("{Enter}")
+  expect(mock.controller!.setMode).toHaveBeenCalledWith("receive")
+  mock.controller!.mode = "receive"
+  view.rerender(<App />)
+  const start = screen.getByRole("button", { name: "Start receiving" })
+  expect((start as HTMLButtonElement).disabled).toBe(true)
+  await user.click(screen.getByRole("button", { name: "Choose folder" }))
+  expect(mock.controller!.chooseReceiveFolder).toHaveBeenCalledTimes(1)
+  mock.controller!.destination = receiving.destination
+  view.rerender(<App />)
+  expect(
+    (screen.getByLabelText("Save received files to") as HTMLInputElement).value,
+  ).toBe(receiving.destination)
+  await user.click(start)
+  expect(mock.controller!.startReceive).toHaveBeenCalledTimes(1)
+  expect(screen.queryByRole("switch", { name: "One-time download" })).toBeNull()
+})
+
+it("shows the receive link, destination, progress, and saved-file confirmation", async () => {
+  const user = userEvent.setup()
+  mock.controller!.mode = "receive"
+  mock.controller!.session = {
+    ...receiving,
+    uploads: 1,
+    items: [file],
+    size: file.size,
+    transfers: [
+      {
+        id: 1,
+        name: file.name,
+        device: "iPhone",
+        address: "192.168.1.50",
+        bytes: file.size,
+        total: file.size,
+        state: "complete",
+      },
+    ],
+  }
+  const view = render(<App />)
+  expect(screen.getByText("Upload link")).toBeTruthy()
+  expect(screen.getByText(receiving.destination)).toBeTruthy()
+  expect(screen.getByText("Received")).toBeTruthy()
+  expect(screen.getByText("128 B saved from iPhone")).toBeTruthy()
+  expect(screen.queryByText(/ZIP/)).toBeNull()
+  const navigation = screen.getByRole("navigation", { name: "Transfer modes" })
+  expect(
+    within(navigation)
+      .getByRole("tab", { name: "Receive" })
+      .getAttribute("aria-selected"),
+  ).toBe("true")
+  const send = within(navigation).getByRole("tab", { name: "Send" })
+  expect(send.getAttribute("aria-disabled")).toBe("true")
+  await user.click(send)
+  expect(mock.controller!.setMode).not.toHaveBeenCalled()
+  await user.click(screen.getByRole("button", { name: "Stop receiving" }))
+  expect(mock.controller!.stop).toHaveBeenCalledTimes(1)
+  mock.controller!.session = { ...mock.controller!.session, state: "stopped" }
+  view.rerender(<App />)
+  expect(screen.getByText("Receiving stopped")).toBeTruthy()
+  expect(send.getAttribute("aria-disabled")).not.toBe("true")
+  await user.click(send)
+  expect(mock.controller!.setMode).toHaveBeenCalledWith("send")
+  await user.click(screen.getByRole("button", { name: "Receive more files" }))
+  expect(mock.controller!.reset).toHaveBeenCalledTimes(1)
 })
 
 it("opens the native updater, prevents repeated checks and allows retry after failure", async () => {

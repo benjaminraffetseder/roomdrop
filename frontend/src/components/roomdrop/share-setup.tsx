@@ -6,14 +6,6 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import type { RoomDropController } from "@/hooks/use-roomdrop"
 import { formatBytes } from "@/lib/format"
@@ -21,7 +13,6 @@ import { cn } from "@/lib/utils"
 import {
   ArrowDown,
   ArrowRight,
-  Clock3,
   FolderPlus,
   Link2,
   LoaderCircle,
@@ -31,11 +22,7 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 import { FileList } from "./file-list"
-
-const durations = [5, 15, 30, 60].map((value) => ({
-  value,
-  label: value === 60 ? "1 hour" : `${value} minutes`,
-}))
+import { SessionDuration } from "./session-duration"
 
 export function ShareSetup({ app }: { app: RoomDropController }) {
   const [dragging, setDragging] = useState(false)
@@ -183,50 +170,8 @@ export function ShareSetup({ app }: { app: RoomDropController }) {
         className="mt-6 rounded-[11px] border border-border bg-popover px-[17px] narrow:px-3 compact:mt-5"
         aria-label="Session settings"
       >
-        <div
-          className={cn(
-            "flex min-h-[66px] items-center gap-3 narrow:gap-[9px] compact:min-h-[60px]",
-            "border-b border-muted",
-          )}
-        >
-          <span className="inline-flex w-[21px] text-setting-icon">
-            <Clock3 size={19} strokeWidth={1.6} />
-          </span>
-          <div className="flex-1">
-            <label
-              className="text-[11px] font-[550] text-setting-foreground narrow:text-[10px]"
-              id="duration-label"
-              htmlFor="duration"
-            >
-              Link expires after
-            </label>
-          </div>
-          <Select
-            items={durations}
-            value={app.minutes}
-            disabled={app.busy}
-            onValueChange={(value) => {
-              if (value !== null) app.setMinutes(value)
-            }}
-          >
-            <SelectTrigger
-              id="duration"
-              aria-labelledby="duration-label"
-              className="min-w-[105px] text-[10px]"
-              size="sm"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent align="end">
-              <SelectGroup>
-                {durations.map(({ value, label }) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
+        <div className="border-b border-muted">
+          <SessionDuration app={app} />
         </div>
         <div className="flex min-h-[66px] items-center gap-3 narrow:gap-[9px] compact:min-h-[60px]">
           <span className="inline-flex w-[21px] text-setting-icon">

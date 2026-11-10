@@ -13,9 +13,12 @@ import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react"
 
 export type { Item, Snapshot }
 type Operation = "select" | "start" | "stop" | "reset" | "remove"
+type Mode = "send" | "receive"
 
 export function useRoomDrop() {
   const desktop = useDesktop()
+  const [mode, setMode] = useState<Mode>("send")
+  const [destination, setDestination] = useState("")
   const [files, setFiles] = useState<Item[]>([])
   const [session, setSession] = useState<Snapshot | null>(null)
   const [networks, setNetworks] = useState<Network[]>([])
@@ -51,6 +54,10 @@ export function useRoomDrop() {
       const nextURL = result.state === "sharing" ? result.url : null
       if (sharingURL.current !== nextURL) clearCopyFeedback()
       sharingURL.current = nextURL
+      if (result.state !== "idle") {
+        setMode(result.mode === "receive" ? "receive" : "send")
+        if (result.mode === "receive") setDestination(result.destination)
+      }
       setSession(result.state === "idle" ? null : result)
     },
     [clearCopyFeedback],
@@ -160,6 +167,7 @@ export function useRoomDrop() {
   }, [desktop, refreshNetworks, isCurrent, acceptSession, invalidatePending])
 
   const start = useCallback(async () => {
+    if (mode !== "send") return
     if (passwordProtected && !password) {
       setError("Enter a download password or turn off password protection.")
       return
@@ -189,10 +197,11 @@ export function useRoomDrop() {
     isCurrent,
     acceptSession,
     finishOperation,
+    mode,
   ])
 
   const onFiles = useEffectEvent((items: Item[]) => {
-    if (action.current) return
+    if (action.current || mode !== "send" || session) return
     setFiles(items)
     void start()
   })
@@ -211,6 +220,7 @@ export function useRoomDrop() {
   }, [desktop])
 
   async function selectFiles(folder = false) {
+    if (mode !== "send") return
     if (passwordProtected && !password) {
       setError("Enter a download password or turn off password protection.")
       return
@@ -246,7 +256,36 @@ export function useRoomDrop() {
       finishOperation(token)
     }
   }
-  async function reset() {
+  async function chooseReceiveFolder() {
+    const token = beginOperation("select")
+    if (token === null) return
+    try {
+      const path = await Native.SelectReceiveFolder()
+      if (isCurrent(token) && path) setDestination(path)
+    } catch (error) {
+      if (isCurrent(token)) setError(errorMessage(error))
+    } finally {
+      finishOperation(token)
+    }
+  }
+  async function startReceive() {
+    if (mode !== "receive") return
+    if (!destination) {
+      setError("Choose a folder for received files.")
+      return
+    }
+    const token = beginOperation("start")
+    if (token === null) return
+    try {
+      const result = await Native.StartReceive(destination, minutes, address)
+      if (isCurrent(token)) acceptSession(result)
+    } catch (error) {
+      if (isCurrent(token)) setError(errorMessage(error))
+    } finally {
+      finishOperation(token)
+    }
+  }
+  async function reset(nextMode: Mode = mode) {
     const token = beginOperation("reset")
     if (token === null) return
     try {
@@ -257,6 +296,7 @@ export function useRoomDrop() {
         setFiles([])
         setPassword("")
         setPasswordProtected(false)
+        setMode(nextMode)
       }
     } catch (error) {
       if (isCurrent(token)) setError(errorMessage(error))
@@ -300,6 +340,16 @@ export function useRoomDrop() {
 
   return {
     desktop,
+    mode,
+    setMode: (next: Mode) => {
+      if (session?.state === "sharing" || action.current || next === mode)
+        return
+      if (desktop) void reset(next)
+      else setMode(next)
+    },
+    destination,
+    chooseReceiveFolder,
+    startReceive,
     files,
     session,
     networks,

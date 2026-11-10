@@ -14,6 +14,9 @@ export const otherFile: Item = {
 export const wifi = { name: "Wi-Fi", address: "192.168.1.20" }
 export const idle: Snapshot = {
   state: "idle",
+  mode: "send",
+  destination: "",
+  uploads: 0,
   url: "",
   expiresAt: new Date(0),
   once: false,
@@ -33,6 +36,15 @@ export const sharing: Snapshot = {
   items: [file],
   size: file.size,
   name: file.name,
+}
+
+export const receiving: Snapshot = {
+  ...idle,
+  mode: "receive",
+  state: "sharing",
+  destination: "C:/files/Received",
+  url: "http://192.168.1.20:8080/s/receive-session",
+  expiresAt: new Date(Date.now() + 900_000),
 }
 
 export function deferred<T>() {

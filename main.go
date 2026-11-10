@@ -67,7 +67,7 @@ func main() {
 	menu.Add("Open RoomDrop").OnClick(func(_ *application.Context) {
 		showWindow()
 	})
-	menu.Add("Stop sharing").OnClick(func(_ *application.Context) {
+	menu.Add("Stop session").OnClick(func(_ *application.Context) {
 		service.manager.Stop()
 	})
 	menu.Add("Check for updates…").OnClick(func(_ *application.Context) {

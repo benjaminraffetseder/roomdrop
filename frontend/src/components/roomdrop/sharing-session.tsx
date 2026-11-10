@@ -33,11 +33,12 @@ export function SharingSession({
   app: Pick<RoomDropController, "copy" | "copied" | "busy">
   session: Snapshot
 }) {
+  const receiving = session.mode === "receive"
   return (
     <>
       <section className="mb-5 wide:mb-[31px] compact:mb-[22px]">
         <h1 className="text-2xl leading-[1.3] font-[550] tracking-[-0.6px]">
-          Sharing files
+          {receiving ? "Ready to receive" : "Sharing files"}
         </h1>
         <p
           className={cn(
@@ -45,7 +46,9 @@ export function SharingSession({
             "mt-2",
           )}
         >
-          Keep RoomDrop open while they download.
+          {receiving
+            ? "Scan the QR code on another device to send files here."
+            : "Keep RoomDrop open while they download."}
         </p>
       </section>
 
@@ -56,7 +59,7 @@ export function SharingSession({
         <div className="flex items-center justify-between gap-[18px] pb-[21px] narrow:gap-2.5">
           <div>
             <h2 className="mb-2 text-[17px] font-[550] tracking-[-0.3px]">
-              Download link
+              {receiving ? "Upload link" : "Download link"}
             </h2>
             <p className="text-[11px] leading-[1.7] text-share-description narrow:text-[10px]">
               Scan the QR code or open the link
@@ -118,20 +121,45 @@ export function SharingSession({
         )}
       </section>
 
-      <section className="mt-[23px]">
-        <div className="mb-2.5 flex items-center justify-between gap-2.5 text-[9px] text-section-meta">
+      {receiving && (
+        <section className="mt-[23px]" aria-label="Destination folder">
           <h2 className="text-[10px] font-semibold text-section-heading">
-            Shared files
+            Saving files to
           </h2>
-          <span className="text-right">
-            {session.items.length}{" "}
-            {session.items.length === 1 ? "item" : "items"} ·{" "}
-            {formatBytes(session.size)}
-            {session.items.length > 1 || session.items[0]?.folder ? " ZIP" : ""}
-          </span>
-        </div>
-        <FileList files={session.items} className="max-h-[125px]" />
-      </section>
+          <p className="mt-2 text-[11px] leading-[1.7] text-description [overflow-wrap:anywhere]">
+            {session.destination}
+          </p>
+          <p className="mt-1 text-[10px] text-description">
+            Keep RoomDrop open. Completed files stay in this folder when the
+            session ends.
+          </p>
+        </section>
+      )}
+      {(!receiving || session.items.length > 0) && (
+        <section className="mt-[23px]">
+          <div className="mb-2.5 flex items-center justify-between gap-2.5 text-[9px] text-section-meta">
+            <h2 className="text-[10px] font-semibold text-section-heading">
+              {receiving
+                ? session.uploads > 50
+                  ? "Latest received files"
+                  : "Received files"
+                : "Shared files"}
+            </h2>
+            <span className="text-right">
+              {receiving ? session.uploads : session.items.length}{" "}
+              {(receiving ? session.uploads : session.items.length) === 1
+                ? "item"
+                : "items"}{" "}
+              · {formatBytes(session.size)}
+              {!receiving &&
+              (session.items.length > 1 || session.items[0]?.folder)
+                ? " ZIP"
+                : ""}
+            </span>
+          </div>
+          <FileList files={session.items} className="max-h-[125px]" />
+        </section>
+      )}
       <TransferActivity session={session} />
     </>
   )

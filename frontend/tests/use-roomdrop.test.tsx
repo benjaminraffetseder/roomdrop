@@ -2,13 +2,23 @@ import { useRoomDrop } from "@/hooks/use-roomdrop"
 import { act, renderHook } from "@testing-library/react"
 import { StrictMode } from "react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { deferred, file, idle, otherFile, sharing, wifi } from "./fixtures"
+import {
+  deferred,
+  file,
+  idle,
+  otherFile,
+  receiving,
+  sharing,
+  wifi,
+} from "./fixtures"
 
 const native = vi.hoisted(() => ({
   Networks: vi.fn(),
   DeviceName: vi.fn(),
   Status: vi.fn(),
   Start: vi.fn(),
+  StartReceive: vi.fn(),
+  SelectReceiveFolder: vi.fn(),
   Stop: vi.fn(),
   Reset: vi.fn(),
   SelectFiles: vi.fn(),
@@ -30,6 +40,8 @@ beforeEach(() => {
   native.DeviceName.mockResolvedValue("Test computer")
   native.Status.mockResolvedValue(idle)
   native.Start.mockResolvedValue(sharing)
+  native.StartReceive.mockResolvedValue(receiving)
+  native.SelectReceiveFolder.mockResolvedValue(receiving.destination)
   native.Stop.mockResolvedValue({ ...sharing, state: "stopped" })
   native.Reset.mockResolvedValue(undefined)
   native.SelectFiles.mockResolvedValue([file, otherFile])
@@ -44,7 +56,84 @@ async function mount() {
   return hook
 }
 
+describe("receiving files", () => {
+  it("chooses a destination and starts with the selected lifetime and network", async () => {
+    const { result } = await mount()
+    await act(async () => result.current.setMode("receive"))
+    expect(native.Reset).toHaveBeenCalledTimes(1)
+    act(() => result.current.setMinutes(30))
+    await act(async () => result.current.chooseReceiveFolder())
+    expect(result.current.destination).toBe(receiving.destination)
+    expect(native.StartReceive).not.toHaveBeenCalled()
+    await act(async () => result.current.startReceive())
+    expect(native.StartReceive).toHaveBeenCalledWith(
+      receiving.destination,
+      30,
+      wifi.address,
+    )
+    expect(native.Start).not.toHaveBeenCalled()
+    expect(result.current.session).toEqual(receiving)
+    await act(async () => result.current.reset())
+    expect(result.current.mode).toBe("receive")
+    expect(result.current.destination).toBe(receiving.destination)
+  })
+
+  it("keeps cancelled folder selection and stale results from creating a session", async () => {
+    native.SelectReceiveFolder.mockResolvedValueOnce("")
+    const { result } = await mount()
+    await act(async () => result.current.setMode("receive"))
+    await act(async () => result.current.chooseReceiveFolder())
+    expect(result.current.destination).toBe("")
+    await act(async () => result.current.startReceive())
+    expect(native.StartReceive).not.toHaveBeenCalled()
+    const picker = deferred<string>()
+    native.SelectReceiveFolder.mockReturnValueOnce(picker.promise)
+    let selecting!: Promise<void>
+    act(() => {
+      selecting = result.current.chooseReceiveFolder()
+    })
+    await act(async () => result.current.reset())
+    await act(async () => {
+      picker.resolve(receiving.destination)
+      await selecting
+    })
+    expect(result.current.destination).toBe("")
+    expect(result.current.session).toBeNull()
+  })
+
+  it("ignores native file-drop events in receive mode", async () => {
+    const { result } = await mount()
+    await act(async () => result.current.setMode("receive"))
+    const onFiles = events.On.mock.calls.find(
+      ([name]) => name === "roomdrop:files",
+    )![1]
+    await act(async () => onFiles({ data: [file] }))
+    expect(native.Start).not.toHaveBeenCalled()
+    expect(result.current.files).toEqual([])
+  })
+})
+
 describe("native action ownership", () => {
+  it.each(["sharing", "stopped", "expired", "downloaded"])(
+    "handles bottom navigation from a %s session without cancelling active transfers",
+    async (state) => {
+      native.Status.mockResolvedValue({ ...sharing, state })
+      const { result } = await mount()
+      await act(async () => result.current.setMode("receive"))
+      if (state === "sharing") {
+        expect(native.Reset).not.toHaveBeenCalled()
+        expect(result.current.mode).toBe("send")
+        expect(result.current.session?.state).toBe("sharing")
+      } else {
+        expect(native.Reset).toHaveBeenCalledTimes(1)
+        expect(result.current.mode).toBe("receive")
+        expect(result.current.session).toBeNull()
+      }
+      expect(native.Start).not.toHaveBeenCalled()
+      expect(native.StartReceive).not.toHaveBeenCalled()
+    },
+  )
+
   it("uses current sharing options for native drops without reconnecting listeners", async () => {
     const { result } = await mount()
     act(() => {

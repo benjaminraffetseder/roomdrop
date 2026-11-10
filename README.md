@@ -2,9 +2,9 @@
 
 # RoomDrop
 
-Share files over your local network.
+Send and receive files over your local network.
 
-RoomDrop is a small Wails 3 desktop utility for Windows, macOS, and Linux. Drop files or choose a folder, then let someone scan the QR code or open the local link in their browser. Files travel directly from your computer to theirs. The receiving device needs no installation.
+RoomDrop is a small Wails 3 desktop utility for Windows, macOS, and Linux. Share files from your computer, or choose **Receive** to let another device send files back through its browser. Scan the QR code or open the local link on the same network. The other device needs no installation.
 
 ![RoomDrop desktop app](docs/images/roomdrop.png)
 
@@ -22,11 +22,27 @@ One-time sessions allow one active download. They close after the complete paylo
 
 Password protection applies to downloads; filenames and sizes remain visible on the sharing page. Incorrect passwords do not start a transfer or consume a one-time link. After five incorrect attempts, the session pauses password attempts for 30 seconds. Passwords stay out of sharing links and QR codes, and RoomDrop never saves them to disk. Starting a new drop clears the password setting.
 
+## Receiving files
+
+1. Choose **Receive** in the desktop app.
+2. Choose a destination folder and a session lifetime, then select **Start receiving**.
+3. Scan the QR code or open the link on the other device. Both devices must use the same local network.
+4. In the browser, choose photos or files and select **Send files**. Files upload one at a time, with progress in the browser and desktop app. **Received** confirms that the file was saved and closed on the computer.
+5. Choose **Stop receiving** to revoke the link and cancel unfinished uploads. Closing the window or choosing **Stop session** from the tray does the same. Completed files stay in the selected folder.
+
+Receive sessions accept individual files up to 10 GiB each, including empty files. Multiple files can be selected together; folder uploads are not supported. Existing files are never overwritten: another `photo.jpg` becomes `photo (2).jpg`. Filenames must be portable across supported platforms, with no path separators, reserved device names, control characters, or more than 180 UTF-8 bytes. The latest 50 received files and transfers appear in the app; totals cover the entire session.
+
+Anyone with an active receive link on the reachable local network can write files into the selected folder. The browser cannot list or download that folder, and the destination path is not exposed on the upload page. Receive mode does not currently offer password protection or one-time links. Transfers use the same unencrypted local HTTP as Send mode.
+
+Cancel in the browser to stop the current upload and the rest of its batch. **Send files** retries unfinished files without re-uploading files already confirmed in that page. If the connection fails after a file was saved but before confirmation arrives, check the destination before retrying; the retry may create a numbered copy. Successfully received files remain even if a later file fails.
+
+Files are written directly into the destination while uploading. Interrupted files are removed during normal cancellation, expiration, and shutdown. A crash or forced process termination can leave an incomplete file; check its contents before using it. Avoid modifying or moving incoming files until they are marked **Received**.
+
 ## System tray
 
-RoomDrop adds its icon to the system tray while running. Click it to reopen the window, including when minimized. Right-click for **Open RoomDrop**, **Stop sharing**, **Check for updates…**, and **Quit RoomDrop**. On Windows, the icon may appear in the tray overflow menu.
+RoomDrop adds its icon to the system tray while running. Click it to reopen the window, including when minimized. Right-click for **Open RoomDrop**, **Stop session**, **Check for updates…**, and **Quit RoomDrop**. On Windows, the icon may appear in the tray overflow menu.
 
-Closing the window stops sharing but keeps the tray icon available. **Quit RoomDrop** stops any transfers and exits the app.
+Closing the window stops the active send or receive session but keeps the tray icon available. **Quit RoomDrop** stops any transfers and exits the app.
 
 ## Updates
 
@@ -126,9 +142,9 @@ npm run format:check
 npm run build
 ```
 
-The Go tests cover real HTTP downloads, one-time link previews and retries, concurrent requests, cancellation, expiration, request isolation, ZIP contents and cleanup, escaped filenames, symbolic links, and input validation.
+The Go tests cover real HTTP downloads and uploads, duplicate incoming filenames, interrupted upload cleanup, one-time link previews and retries, concurrent requests, cancellation, expiration, request isolation, ZIP contents and cleanup, escaped filenames, symbolic links, and input validation.
 
-The React tests cover native action ordering, cancellation, clipboard feedback, effect cleanup, and keyboard interaction. Network preference tests cover remembering adapters across restarts and address changes.
+The React tests cover send/receive mode selection, destination selection, native action ordering, cancellation, clipboard feedback, effect cleanup, and keyboard interaction. Browser upload tests exercise the embedded script's progress, saved-file confirmations, retries, cancellation, and safe text rendering. Network preference tests cover remembering adapters across restarts and address changes.
 
 On Windows, after `wails3 build`, run `powershell -File scripts/test-uninstaller.ps1` to verify that uninstalling preserves unrelated files in an existing destination folder. The test uses an isolated installation and registry entry.
 

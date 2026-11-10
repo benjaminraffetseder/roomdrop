@@ -11,6 +11,7 @@ export function SessionEnded({
   app: Pick<RoomDropController, "reset" | "busy">
   session: Snapshot
 }) {
+  const receiving = session.mode === "receive"
   return (
     <>
       <section className="px-[15px] py-8 text-center">
@@ -37,7 +38,9 @@ export function SessionEnded({
               ? "Session expired"
               : session.state === "error"
                 ? "Connection closed"
-                : "Sharing stopped"}
+                : receiving
+                  ? "Receiving stopped"
+                  : "Sharing stopped"}
         </h1>
         <p
           className={cn(
@@ -46,15 +49,19 @@ export function SessionEnded({
           )}
         >
           This link is no longer active.
+          {receiving &&
+            " Completed files are saved in your destination folder."}
         </p>
         <div className="flex justify-center gap-[15px] pt-[25px] pb-7 text-[10px] text-ended-meta [&>span+span]:before:mr-[15px] [&>span+span]:before:content-['·']">
           <span>
-            {session.items.length}{" "}
-            {session.items.length === 1 ? "item" : "items"}
+            {receiving ? session.uploads : session.items.length}{" "}
+            {(receiving ? session.uploads : session.items.length) === 1
+              ? "item"
+              : "items"}
           </span>
           <span>
-            {session.downloads}{" "}
-            {session.downloads === 1
+            {receiving ? session.uploads : session.downloads}{" "}
+            {(receiving ? session.uploads : session.downloads) === 1
               ? "completed transfer"
               : "completed transfers"}
           </span>
@@ -66,10 +73,15 @@ export function SessionEnded({
           onClick={() => void app.reset()}
           disabled={app.busy}
         >
-          Share more files
+          {receiving ? "Receive more files" : "Share more files"}
           <ArrowRight size={18} />
         </Button>
       </section>
+      {receiving && (
+        <p className="mb-5 text-[11px] text-description [overflow-wrap:anywhere]">
+          Saved to {session.destination}
+        </p>
+      )}
       {session.transfers.length > 0 && <TransferActivity session={session} />}
     </>
   )

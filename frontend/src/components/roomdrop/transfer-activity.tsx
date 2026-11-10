@@ -7,6 +7,7 @@ const activityGlyph =
   "grid size-[33px] shrink-0 place-items-center rounded-[9px] border border-activity-border bg-activity text-activity-icon"
 
 export function TransferActivity({ session }: { session: Snapshot }) {
+  const receiving = session.mode === "receive"
   const transfers = session.transfers.slice().reverse()
   return (
     <section
@@ -33,11 +34,17 @@ export function TransferActivity({ session }: { session: Snapshot }) {
           </span>
           <div>
             <strong className="block text-[10px] font-medium text-activity-foreground">
-              {session.visitors ? "Link opened" : "No downloads yet"}
+              {session.visitors
+                ? "Link opened"
+                : receiving
+                  ? "No uploads yet"
+                  : "No downloads yet"}
             </strong>
             {session.visitors > 0 && (
               <p className="mt-1 text-[9px] leading-[1.7] text-activity-meta">
-                Waiting for a download.
+                {receiving
+                  ? "Waiting for files from another device."
+                  : "Waiting for a download."}
               </p>
             )}
           </div>
@@ -77,28 +84,38 @@ export function TransferActivity({ session }: { session: Snapshot }) {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
                     <strong className="block text-[10px] font-medium text-activity-foreground [overflow-wrap:anywhere]">
-                      {transfer.device}
+                      {receiving ? transfer.name : transfer.device}
                     </strong>
                     <span className="text-[9px] whitespace-nowrap text-activity-status">
                       {transfer.state === "complete"
-                        ? "Sent"
+                        ? receiving
+                          ? "Received"
+                          : "Sent"
                         : transfer.state === "interrupted"
                           ? "Interrupted"
                           : `${percent}%`}
                     </span>
                   </div>
                   <p className="mt-1 text-[9px] leading-[1.7] text-activity-meta">
-                    {transfer.state === "sending"
+                    {transfer.state === "sending" ||
+                    transfer.state === "receiving"
                       ? `${formatBytes(transfer.bytes)} of ${formatBytes(transfer.total)}`
                       : transfer.state === "complete"
-                        ? `${formatBytes(transfer.total)} sent to browser`
-                        : "The download didn’t finish."}
+                        ? `${formatBytes(transfer.total)} ${receiving ? "saved from " + transfer.device : "sent to browser"}`
+                        : receiving
+                          ? "The upload didn’t finish. Ask the sender to retry."
+                          : "The download didn’t finish."}
                   </p>
-                  {transfer.state === "sending" && (
+                  {(transfer.state === "sending" ||
+                    transfer.state === "receiving") && (
                     <div
                       className="mt-2 h-[3px] w-full overflow-hidden rounded-[2px] bg-progress-track"
                       role="progressbar"
-                      aria-label={`Sending to ${transfer.device}`}
+                      aria-label={
+                        receiving
+                          ? `Receiving ${transfer.name}`
+                          : `Sending to ${transfer.device}`
+                      }
                       aria-valuenow={percent}
                       aria-valuemin={0}
                       aria-valuemax={100}

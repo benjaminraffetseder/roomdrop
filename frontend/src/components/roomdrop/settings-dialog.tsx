@@ -155,11 +155,12 @@ export function SettingsDialog({
           </p>
         </div>
         <p className="mt-[17px] text-[9px] leading-[1.8] text-fineprint">
-          Anyone with the link on your network can download. Local HTTP
-          transfers are not encrypted. Closing the window stops sharing and
-          leaves RoomDrop in the tray. Choose Quit RoomDrop in the tray menu to
-          exit. A completed transfer means sent to the browser, not confirmation
-          that the file was saved.
+          Anyone with the link on your network can download shared files or send
+          files during a receive session. Local HTTP transfers are not
+          encrypted. Closing the window stops the session and leaves RoomDrop in
+          the tray. Choose Quit RoomDrop in the tray menu to exit. Sent means
+          delivered to the browser; Received means saved to your selected
+          folder.
         </p>
         <details className="mt-[18px] text-[10px] text-settings-foreground">
           <summary className="cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring">

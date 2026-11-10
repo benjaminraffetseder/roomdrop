@@ -18,6 +18,7 @@ import (
 
 type Transfer struct {
 	ID      int64  `json:"id"`
+	Name    string `json:"name"`
 	Device  string `json:"device"`
 	Address string `json:"address"`
 	Bytes   int64  `json:"bytes"`
@@ -27,6 +28,9 @@ type Transfer struct {
 
 type Snapshot struct {
 	State             string     `json:"state"`
+	Mode              string     `json:"mode"`
+	Destination       string     `json:"destination"`
+	Uploads           int        `json:"uploads"`
 	URL               string     `json:"url"`
 	ExpiresAt         time.Time  `json:"expiresAt"`
 	Once              bool       `json:"once"`
@@ -54,6 +58,7 @@ type session struct {
 	expiresAt        time.Time
 	once             bool
 	payload          *payload
+	inbox            *inbox
 	server           *http.Server
 	timer            *time.Timer
 	cancel           context.CancelFunc
@@ -71,10 +76,21 @@ type session struct {
 func NewManager() *Manager { return &Manager{} }
 
 func (m *Manager) Start(paths []string, minutes int, once bool, address, password string) (Snapshot, error) {
+	return m.start(paths, "", minutes, once, address, password)
+}
+
+func (m *Manager) StartReceive(destination string, minutes int, address string) (Snapshot, error) {
+	if destination == "" {
+		return Snapshot{}, errors.New("Choose a folder for received files.")
+	}
+	return m.start(nil, destination, minutes, false, address, "")
+}
+
+func (m *Manager) start(paths []string, destination string, minutes int, once bool, address, password string) (Snapshot, error) {
 	m.mu.Lock()
 	if m.preparing || (m.current != nil && m.current.snapshot().State == "sharing") {
 		m.mu.Unlock()
-		return Snapshot{}, errors.New("A session is already running. Stop sharing before starting another.")
+		return Snapshot{}, errors.New("A session is already running. Stop the current session before starting another.")
 	}
 	if minutes < 1 || minutes > 1440 {
 		m.mu.Unlock()
@@ -98,35 +114,50 @@ func (m *Manager) Start(paths []string, minutes int, once bool, address, passwor
 		m.preparing, m.prepareCancel = false, nil
 		m.mu.Unlock()
 	}()
-	p, err := prepare(prepareCtx, paths)
+	var p *payload
+	var incoming *inbox
+	var err error
+	if destination != "" {
+		incoming, err = openInbox(destination)
+	} else {
+		p, err = prepare(prepareCtx, paths)
+	}
 	if err != nil {
 		return Snapshot{}, err
+	}
+	closePrepared := func() {
+		if p != nil {
+			p.close()
+		}
+		if incoming != nil {
+			_ = incoming.root.Close()
+		}
 	}
 	// Stop and Reset can interrupt ZIP creation. Publish only if preparation
 	// still belongs to this live operation.
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if err := prepareCtx.Err(); err != nil {
-		p.close()
+		closePrepared()
 		return Snapshot{}, err
 	}
 	// Publish only on the adapter the sender chose.
 	listener, err := net.Listen("tcp4", net.JoinHostPort(address, "0"))
 	if err != nil {
-		p.close()
+		closePrepared()
 		return Snapshot{}, errors.New("Could not start sharing on this network. Reconnect and try again.")
 	}
 	secret := make([]byte, 32)
 	if _, err := rand.Read(secret); err != nil {
 		_ = listener.Close()
-		p.close()
+		closePrepared()
 		return Snapshot{}, errors.New("Could not create a secure sharing link.")
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	s := &session{
 		state: "sharing", token: base64.RawURLEncoding.EncodeToString(secret),
 		expiresAt: time.Now().Add(time.Duration(minutes) * time.Minute),
-		once:      once, payload: p, cancel: cancel, visitors: make(map[string]bool),
+		once:      once, payload: p, inbox: incoming, cancel: cancel, visitors: make(map[string]bool),
 	}
 	s.setPassword(password)
 	s.url = "http://" + listener.Addr().String() + "/s/" + s.token
@@ -136,6 +167,11 @@ func (m *Manager) Start(paths []string, minutes int, once bool, address, passwor
 		BaseContext: func(net.Listener) context.Context { return ctx },
 	}
 	s.timer = time.AfterFunc(time.Until(s.expiresAt), func() { s.stop("expired") })
+	if incoming != nil {
+		// Uploads refresh an idle deadline while streaming, so large files
+		// must not inherit a fixed ten-second request-body deadline.
+		s.server.ReadTimeout = 0
+	}
 	m.current = s
 	go func() {
 		if err := s.server.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -149,7 +185,7 @@ func (m *Manager) Snapshot() Snapshot {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.current == nil {
-		return Snapshot{State: "idle", Items: []Item{}, Transfers: []Transfer{}}
+		return Snapshot{State: "idle", Mode: "send", Items: []Item{}, Transfers: []Transfer{}}
 	}
 	return m.current.snapshot()
 }
@@ -180,17 +216,25 @@ func (m *Manager) Reset() {
 func (s *session) snapshot() Snapshot {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	items := append([]Item{}, s.payload.items...)
 	transfers := make([]Transfer, len(s.transfers))
 	for i, transfer := range s.transfers {
 		transfers[i] = *transfer
 	}
-	return Snapshot{
+	snapshot := Snapshot{
 		State: s.state, URL: s.url, ExpiresAt: s.expiresAt, Once: s.once,
 		PasswordProtected: s.passwordDigest != nil,
-		Name:              s.payload.name, Size: s.payload.size, Items: items,
-		Visitors: len(s.visitors), Downloads: s.downloads, Transfers: transfers,
+		Visitors:          len(s.visitors), Downloads: s.downloads, Transfers: transfers,
 	}
+	if s.inbox != nil {
+		snapshot.Mode, snapshot.Destination = "receive", s.inbox.destination
+		snapshot.Items = append([]Item{}, s.inbox.items...)
+		snapshot.Size, snapshot.Uploads = s.inbox.size, s.inbox.uploads
+	} else {
+		snapshot.Mode = "send"
+		snapshot.Name, snapshot.Size = s.payload.name, s.payload.size
+		snapshot.Items = append([]Item{}, s.payload.items...)
+	}
+	return snapshot
 }
 
 func (s *session) stop(reason string) {
@@ -203,7 +247,23 @@ func (s *session) stop(reason string) {
 	s.mu.Unlock()
 	// Close cancels open transfers as well as revoking the link.
 	_ = s.server.Close()
-	s.cleanup.Do(s.payload.close)
+	s.closeResources()
+}
+
+func (s *session) closeResources() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.state == "sharing" || s.inFlight != 0 {
+		return
+	}
+	s.cleanup.Do(func() {
+		if s.payload != nil {
+			s.payload.close()
+		}
+		if s.inbox != nil {
+			_ = s.inbox.root.Close()
+		}
+	})
 }
 
 func (s *session) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -214,6 +274,9 @@ func (s *session) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("X-Frame-Options", "DENY")
 	w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'")
+	if s.inbox != nil {
+		w.Header().Set("Content-Security-Policy", "default-src 'none'; script-src 'self'; connect-src 'self'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'")
+	}
 	ip, _, _ := net.SplitHostPort(r.RemoteAddr)
 	remote := net.ParseIP(ip)
 	if remote == nil || (!remote.IsPrivate() && !remote.IsLoopback() && !remote.IsLinkLocalUnicast()) {
@@ -221,7 +284,11 @@ func (s *session) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	path := "/s/" + s.token
-	if r.URL.Path != path && r.URL.Path != path+"/download" {
+	endpoint := "/download"
+	if s.inbox != nil {
+		endpoint = "/upload"
+	}
+	if r.URL.Path != path && r.URL.Path != path+endpoint && !(s.inbox != nil && r.URL.Path == path+"/uploader.js") {
 		http.NotFound(w, r)
 		return
 	}
@@ -229,7 +296,19 @@ func (s *session) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	active := s.state == "sharing" && time.Now().Before(s.expiresAt)
 	s.mu.Unlock()
 	if !active {
-		http.Error(w, "This RoomDrop session has ended. Ask the sender for a new link.", http.StatusGone)
+		http.Error(w, "This RoomDrop session has ended. Ask for a new link.", http.StatusGone)
+		return
+	}
+	if s.inbox != nil && r.URL.Path == path+"/uploader.js" {
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			w.Header().Set("Allow", "GET, HEAD")
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+		if r.Method == http.MethodGet {
+			_, _ = io.WriteString(w, uploaderScript)
+		}
 		return
 	}
 	if r.URL.Path == path {
@@ -247,25 +326,32 @@ func (s *session) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			s.visitors[ip+"|"+deviceName(r.UserAgent())] = true
 		}
 		s.mu.Unlock()
-		s.render(w, path, http.StatusOK, "")
+		if s.inbox != nil {
+			s.renderUploader(w, path)
+		} else {
+			s.render(w, path, http.StatusOK, "")
+		}
 		return
 	}
 	// Link preview bots and HEAD requests must not consume a one-time session.
 	if r.Method != http.MethodPost {
 		w.Header().Set("Allow", "POST")
-		http.Error(w, "Open the sharing link and use the download button.", http.StatusMethodNotAllowed)
+		http.Error(w, "Open the session link to transfer files.", http.StatusMethodNotAllowed)
 		return
 	}
 	if origin := r.Header.Get("Origin"); origin != "" && origin != "http://"+r.Host {
-		http.Error(w, "Please download from the original sharing page.", http.StatusForbidden)
+		http.Error(w, "Please transfer from the original RoomDrop page.", http.StatusForbidden)
 		return
 	}
-	if s.authorizeDownload(w, r, path) {
+	if s.inbox != nil {
+		s.upload(w, r, ip)
+	} else if s.authorizeDownload(w, r, path) {
 		s.download(w, r, ip)
 	}
 }
 
 func (s *session) download(w http.ResponseWriter, r *http.Request, ip string) {
+	defer s.closeResources()
 	s.mu.Lock()
 	if s.state != "sharing" || !time.Now().Before(s.expiresAt) {
 		s.mu.Unlock()
@@ -282,7 +368,7 @@ func (s *session) download(w http.ResponseWriter, r *http.Request, ip string) {
 	t := &Transfer{ID: s.nextID, Device: deviceName(r.UserAgent()), Address: ip, Total: s.payload.size, State: "sending"}
 	if len(s.transfers) >= 50 {
 		for i, old := range s.transfers {
-			if old.State != "sending" {
+			if old.State != "sending" && old.State != "receiving" {
 				s.transfers = append(s.transfers[:i], s.transfers[i+1:]...)
 				break
 			}

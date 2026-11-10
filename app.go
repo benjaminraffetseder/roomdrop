@@ -13,7 +13,8 @@ import (
 )
 
 // App exposes native file selection and sharing. The LAN server never exposes
-// these methods: it can only serve the current session's selected payload.
+// these methods: it can only download selected files or upload into the
+// explicitly selected receive folder for the current session.
 type App struct {
 	manager  *share.Manager
 	mu       sync.Mutex
@@ -110,22 +111,45 @@ func (a *App) RemoveFile(path string) []share.Item {
 func (a *App) Start(minutes int, once bool, address, password string) (share.Snapshot, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	networks, err := a.Networks()
-	if err != nil {
+	if err := a.validateAddress(address); err != nil {
 		return share.Snapshot{}, err
-	}
-	found := false
-	for _, network := range networks {
-		found = found || network.Address == address
-	}
-	if !found {
-		return share.Snapshot{}, errors.New("Connect to a local network, then select its address and try again.")
 	}
 	paths := make([]string, len(a.files))
 	for i, item := range a.files {
 		paths[i] = item.Path
 	}
 	return a.manager.Start(paths, minutes, once, address, password)
+}
+
+func (a *App) SelectReceiveFolder() (string, error) {
+	path, err := application.Get().Dialog.OpenFile().CanChooseFiles(false).CanChooseDirectories(true).
+		SetTitle("Choose where to save received files").PromptForSingleSelection()
+	if err != nil {
+		return "", errors.New("Could not open the folder picker. Please try again.")
+	}
+	return path, nil
+}
+
+func (a *App) StartReceive(destination string, minutes int, address string) (share.Snapshot, error) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if err := a.validateAddress(address); err != nil {
+		return share.Snapshot{}, err
+	}
+	return a.manager.StartReceive(destination, minutes, address)
+}
+
+func (a *App) validateAddress(address string) error {
+	networks, err := a.Networks()
+	if err != nil {
+		return err
+	}
+	for _, network := range networks {
+		if network.Address == address {
+			return nil
+		}
+	}
+	return errors.New("Connect to a local network, then select its address and try again.")
 }
 
 func (a *App) Status() share.Snapshot { return a.manager.Snapshot() }
