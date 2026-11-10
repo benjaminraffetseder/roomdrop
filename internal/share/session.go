@@ -26,16 +26,17 @@ type Transfer struct {
 }
 
 type Snapshot struct {
-	State     string     `json:"state"`
-	URL       string     `json:"url"`
-	ExpiresAt time.Time  `json:"expiresAt"`
-	Once      bool       `json:"once"`
-	Name      string     `json:"name"`
-	Size      int64      `json:"size"`
-	Items     []Item     `json:"items"`
-	Visitors  int        `json:"visitors"`
-	Downloads int        `json:"downloads"`
-	Transfers []Transfer `json:"transfers"`
+	State             string     `json:"state"`
+	URL               string     `json:"url"`
+	ExpiresAt         time.Time  `json:"expiresAt"`
+	Once              bool       `json:"once"`
+	PasswordProtected bool       `json:"passwordProtected"`
+	Name              string     `json:"name"`
+	Size              int64      `json:"size"`
+	Items             []Item     `json:"items"`
+	Visitors          int        `json:"visitors"`
+	Downloads         int        `json:"downloads"`
+	Transfers         []Transfer `json:"transfers"`
 }
 
 type Manager struct {
@@ -46,27 +47,30 @@ type Manager struct {
 }
 
 type session struct {
-	mu        sync.Mutex
-	state     string
-	url       string
-	token     string
-	expiresAt time.Time
-	once      bool
-	payload   *payload
-	server    *http.Server
-	timer     *time.Timer
-	cancel    context.CancelFunc
-	cleanup   sync.Once
-	visitors  map[string]bool
-	transfers []*Transfer
-	nextID    int64
-	downloads int
-	inFlight  int
+	mu               sync.Mutex
+	state            string
+	url              string
+	token            string
+	expiresAt        time.Time
+	once             bool
+	payload          *payload
+	server           *http.Server
+	timer            *time.Timer
+	cancel           context.CancelFunc
+	cleanup          sync.Once
+	visitors         map[string]bool
+	transfers        []*Transfer
+	nextID           int64
+	downloads        int
+	inFlight         int
+	passwordDigest   *[32]byte
+	passwordFailures int
+	passwordRetryAt  time.Time
 }
 
 func NewManager() *Manager { return &Manager{} }
 
-func (m *Manager) Start(paths []string, minutes int, once bool, address string) (Snapshot, error) {
+func (m *Manager) Start(paths []string, minutes int, once bool, address, password string) (Snapshot, error) {
 	m.mu.Lock()
 	if m.preparing || (m.current != nil && m.current.snapshot().State == "sharing") {
 		m.mu.Unlock()
@@ -75,6 +79,10 @@ func (m *Manager) Start(paths []string, minutes int, once bool, address string) 
 	if minutes < 1 || minutes > 1440 {
 		m.mu.Unlock()
 		return Snapshot{}, errors.New("Choose an expiration between 1 minute and 24 hours.")
+	}
+	if len(password) > maxPasswordBytes {
+		m.mu.Unlock()
+		return Snapshot{}, errors.New("Choose a shorter download password (up to 1024 bytes).")
 	}
 	ip := net.ParseIP(address)
 	if ip == nil || ip.To4() == nil || (!ip.IsPrivate() && !ip.IsLoopback()) {
@@ -120,6 +128,7 @@ func (m *Manager) Start(paths []string, minutes int, once bool, address string) 
 		expiresAt: time.Now().Add(time.Duration(minutes) * time.Minute),
 		once:      once, payload: p, cancel: cancel, visitors: make(map[string]bool),
 	}
+	s.setPassword(password)
 	s.url = "http://" + listener.Addr().String() + "/s/" + s.token
 	s.server = &http.Server{
 		Handler: s, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second,
@@ -178,7 +187,8 @@ func (s *session) snapshot() Snapshot {
 	}
 	return Snapshot{
 		State: s.state, URL: s.url, ExpiresAt: s.expiresAt, Once: s.once,
-		Name: s.payload.name, Size: s.payload.size, Items: items,
+		PasswordProtected: s.passwordDigest != nil,
+		Name:              s.payload.name, Size: s.payload.size, Items: items,
 		Visitors: len(s.visitors), Downloads: s.downloads, Transfers: transfers,
 	}
 }
@@ -237,7 +247,7 @@ func (s *session) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			s.visitors[ip+"|"+deviceName(r.UserAgent())] = true
 		}
 		s.mu.Unlock()
-		s.render(w, path)
+		s.render(w, path, http.StatusOK, "")
 		return
 	}
 	// Link preview bots and HEAD requests must not consume a one-time session.
@@ -250,7 +260,9 @@ func (s *session) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Please download from the original sharing page.", http.StatusForbidden)
 		return
 	}
-	s.download(w, r, ip)
+	if s.authorizeDownload(w, r, path) {
+		s.download(w, r, ip)
+	}
 }
 
 func (s *session) download(w http.ResponseWriter, r *http.Request, ip string) {

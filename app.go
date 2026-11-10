@@ -106,7 +106,7 @@ func (a *App) RemoveFile(path string) []share.Item {
 	return append([]share.Item{}, a.files...)
 }
 
-func (a *App) Start(minutes int, once bool, address string) (share.Snapshot, error) {
+func (a *App) Start(minutes int, once bool, address, password string) (share.Snapshot, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	networks, err := a.Networks()
@@ -124,7 +124,7 @@ func (a *App) Start(minutes int, once bool, address string) (share.Snapshot, err
 	for i, item := range a.files {
 		paths[i] = item.Path
 	}
-	return a.manager.Start(paths, minutes, once, address)
+	return a.manager.Start(paths, minutes, once, address, password)
 }
 
 func (a *App) Status() share.Snapshot { return a.manager.Snapshot() }

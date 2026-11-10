@@ -23,6 +23,8 @@ export function useRoomDrop() {
   const [device, setDevice] = useState("This computer")
   const [minutes, setMinutes] = useState(15)
   const [once, setOnce] = useState(false)
+  const [passwordProtected, setPasswordProtected] = useState(false)
+  const [password, setPassword] = useState("")
   const [operation, setOperation] = useState<Operation | null>(null)
   const [error, setError] = useState("")
   const [copied, setCopied] = useState(false)
@@ -158,10 +160,19 @@ export function useRoomDrop() {
   }, [desktop, refreshNetworks, isCurrent, acceptSession, invalidatePending])
 
   const start = useCallback(async () => {
+    if (passwordProtected && !password) {
+      setError("Enter a download password or turn off password protection.")
+      return
+    }
     const token = beginOperation("start")
     if (token === null) return
     try {
-      const result = await Native.Start(minutes, once, address)
+      const result = await Native.Start(
+        minutes,
+        once,
+        address,
+        passwordProtected ? password : "",
+      )
       if (isCurrent(token)) acceptSession(result)
     } catch (error) {
       if (isCurrent(token)) setError(errorMessage(error))
@@ -173,6 +184,8 @@ export function useRoomDrop() {
     minutes,
     once,
     address,
+    passwordProtected,
+    password,
     isCurrent,
     acceptSession,
     finishOperation,
@@ -198,13 +211,22 @@ export function useRoomDrop() {
   }, [desktop])
 
   async function selectFiles(folder = false) {
+    if (passwordProtected && !password) {
+      setError("Enter a download password or turn off password protection.")
+      return
+    }
     const token = beginOperation("select")
     if (token === null) return
     try {
       const selected = await Native.SelectFiles(folder)
       if (!isCurrent(token) || !selected.length) return
       setFiles(selected)
-      const result = await Native.Start(minutes, once, address)
+      const result = await Native.Start(
+        minutes,
+        once,
+        address,
+        passwordProtected ? password : "",
+      )
       if (isCurrent(token)) acceptSession(result)
     } catch (error) {
       if (isCurrent(token)) setError(errorMessage(error))
@@ -233,6 +255,8 @@ export function useRoomDrop() {
         sharingURL.current = null
         setSession(null)
         setFiles([])
+        setPassword("")
+        setPasswordProtected(false)
       }
     } catch (error) {
       if (isCurrent(token)) setError(errorMessage(error))
@@ -286,6 +310,13 @@ export function useRoomDrop() {
     setMinutes,
     once,
     setOnce,
+    passwordProtected,
+    setPasswordProtected: (enabled: boolean) => {
+      setPasswordProtected(enabled)
+      if (!enabled) setPassword("")
+    },
+    password,
+    setPassword,
     busy: operation !== null,
     preparing: operation === "select" || operation === "start",
     error,

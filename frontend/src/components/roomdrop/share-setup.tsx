@@ -1,5 +1,12 @@
 import { Button } from "@/components/ui/button"
 import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
+import {
   Select,
   SelectContent,
   SelectGroup,
@@ -18,6 +25,7 @@ import {
   FolderPlus,
   Link2,
   LoaderCircle,
+  LockKeyhole,
   Monitor,
   Plus,
 } from "lucide-react"
@@ -243,6 +251,51 @@ export function ShareSetup({ app }: { app: RoomDropController }) {
             aria-label="Expire after one completed download"
           />
         </div>
+        <div className="flex min-h-[66px] items-center gap-3 border-t border-muted narrow:gap-[9px] compact:min-h-[60px]">
+          <span className="inline-flex w-[21px] text-setting-icon">
+            <LockKeyhole size={19} strokeWidth={1.6} />
+          </span>
+          <div className="flex-1">
+            <label
+              className="text-[11px] font-[550] text-setting-foreground narrow:text-[10px]"
+              htmlFor="password-protection"
+            >
+              Password protection
+            </label>
+            <span className="mt-[3px] block text-[9px] leading-normal text-setting-description narrow:text-[8px]">
+              Require a password to download.
+            </span>
+          </div>
+          <Switch
+            id="password-protection"
+            checked={app.passwordProtected}
+            disabled={app.busy}
+            onCheckedChange={(checked) => app.setPasswordProtected(checked)}
+          />
+        </div>
+        {app.passwordProtected && (
+          <FieldGroup className="pb-4">
+            <Field data-disabled={app.busy || undefined}>
+              <FieldLabel htmlFor="download-password">
+                Download password
+              </FieldLabel>
+              <Input
+                id="download-password"
+                type="password"
+                value={app.password}
+                onChange={(event) => app.setPassword(event.target.value)}
+                disabled={app.busy}
+                maxLength={256}
+                autoComplete="new-password"
+                aria-describedby="download-password-help"
+              />
+              <FieldDescription id="download-password-help">
+                Set this before choosing files. Share the password separately
+                from the link.
+              </FieldDescription>
+            </Field>
+          </FieldGroup>
+        )}
       </section>
     </>
   )

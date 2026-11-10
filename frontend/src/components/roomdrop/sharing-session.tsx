@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 import type { RoomDropController, Snapshot } from "@/hooks/use-roomdrop"
 import { formatBytes } from "@/lib/format"
 import { cn } from "@/lib/utils"
-import { Check, Clock3, Copy, Link2 } from "lucide-react"
+import { Check, Clock3, Copy, Link2, LockKeyhole } from "lucide-react"
 import { QRCodeSVG } from "qrcode.react"
 import { useEffect, useState } from "react"
 import { FileList } from "./file-list"
@@ -110,6 +110,12 @@ export function SharingSession({
             </span>
           )}
         </div>
+        {session.passwordProtected && (
+          <p className="mt-3 flex items-center gap-1.5 text-[11px] text-share-description">
+            <LockKeyhole size={14} aria-hidden="true" />
+            Password protected. Share the password separately.
+          </p>
+        )}
       </section>
 
       <section className="mt-[23px]">

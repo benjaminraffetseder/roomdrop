@@ -23,6 +23,10 @@ beforeEach(() => {
     setMinutes: vi.fn(),
     once: false,
     setOnce: vi.fn(),
+    passwordProtected: false,
+    setPasswordProtected: vi.fn(),
+    password: "",
+    setPassword: vi.fn(),
     busy: false,
     preparing: false,
     error: "",
@@ -95,6 +99,30 @@ it("disables draft mutations while an operation is in flight", async () => {
   expect(
     screen.queryByRole("button", { name: "Cancel preparation" }),
   ).toBeNull()
+})
+
+it("provides an accessible password setting and masks the download password", async () => {
+  const user = userEvent.setup()
+  const view = render(<App />)
+  const toggle = screen.getByRole("switch", { name: "Password protection" })
+  expect(screen.queryByLabelText("Download password")).toBeNull()
+  toggle.focus()
+  await user.keyboard(" ")
+  expect(mock.controller!.setPasswordProtected).toHaveBeenCalledWith(true)
+  mock.controller!.passwordProtected = true
+  view.rerender(<App />)
+  const input = screen.getByLabelText("Download password")
+  expect(input.getAttribute("type")).toBe("password")
+  await user.type(input, "s")
+  expect(mock.controller!.setPassword).toHaveBeenCalledWith("s")
+  mock.controller!.busy = true
+  view.rerender(<App />)
+  expect((input as HTMLInputElement).disabled).toBe(true)
+  mock.controller!.session = { ...sharing, passwordProtected: true }
+  view.rerender(<App />)
+  expect(
+    screen.getByText("Password protected. Share the password separately."),
+  ).toBeTruthy()
 })
 
 it("connects setup, active sharing, and completion controls to their actions", async () => {

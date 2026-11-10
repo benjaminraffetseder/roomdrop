@@ -58,7 +58,7 @@ describe("native action ownership", () => {
     await act(async () => {
       onFiles({ data: [file] })
     })
-    expect(native.Start).toHaveBeenCalledWith(30, true, wifi.address)
+    expect(native.Start).toHaveBeenCalledWith(30, true, wifi.address, "")
     expect(result.current.files).toEqual([file])
     expect(result.current.session).toEqual(sharing)
   })
@@ -169,6 +169,84 @@ describe("native action ownership", () => {
     })
     expect(result.current.networks).toEqual([])
     expect(result.current.address).toBe("")
+  })
+})
+
+describe("download passwords", () => {
+  it.each(["files", "folder", "drop", "retry"])(
+    "passes the configured password when sharing via %s",
+    async (source) => {
+      const { result } = await mount()
+      act(() => {
+        result.current.setPasswordProtected(true)
+        result.current.setPassword("Grüße + & secret 🔑")
+      })
+      await act(async () => {
+        if (source === "drop") {
+          const onFiles = events.On.mock.calls.find(
+            ([name]) => name === "roomdrop:files",
+          )![1]
+          onFiles({ data: [file] })
+        } else if (source === "retry") {
+          await result.current.start()
+        } else {
+          await result.current.selectFiles(source === "folder")
+        }
+      })
+      expect(native.Start).toHaveBeenCalledWith(
+        15,
+        false,
+        wifi.address,
+        "Grüße + & secret 🔑",
+      )
+    },
+  )
+
+  it("prevents an empty protected share via the picker, drop, or retry", async () => {
+    const { result } = await mount()
+    act(() => result.current.setPasswordProtected(true))
+    await act(async () => {
+      await result.current.selectFiles()
+      await result.current.start()
+      const onFiles = events.On.mock.calls.find(
+        ([name]) => name === "roomdrop:files",
+      )![1]
+      onFiles({ data: [file] })
+    })
+    expect(native.SelectFiles).not.toHaveBeenCalled()
+    expect(native.Start).not.toHaveBeenCalled()
+    expect(result.current.error).toContain("Enter a download password")
+    expect(result.current.files).toEqual([file])
+    // The dropped files remain available once a password is entered.
+    act(() => result.current.setPassword("secret"))
+    await act(async () => {
+      await result.current.start()
+    })
+    expect(native.Start).toHaveBeenCalledWith(15, false, wifi.address, "secret")
+  })
+
+  it("clears the password when protection is turned off or the session is reset", async () => {
+    const { result } = await mount()
+    act(() => {
+      result.current.setPasswordProtected(true)
+      result.current.setPassword("secret")
+    })
+    act(() => result.current.setPasswordProtected(false))
+    expect(result.current.password).toBe("")
+    await act(async () => {
+      await result.current.start()
+    })
+    expect(native.Start).toHaveBeenCalledWith(15, false, wifi.address, "")
+    act(() => {
+      result.current.setPasswordProtected(true)
+      result.current.setPassword("another secret")
+    })
+    await act(async () => {
+      await result.current.reset()
+    })
+    expect(result.current.password).toBe("")
+    expect(result.current.passwordProtected).toBe(false)
+    expect(localStorage.length).toBe(0)
   })
 })
 

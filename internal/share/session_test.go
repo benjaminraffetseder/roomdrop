@@ -27,10 +27,14 @@ func fixture(t *testing.T, name, content string) string {
 	return path
 }
 
-func startTest(t *testing.T, paths []string, once bool) (*Manager, Snapshot) {
+func startTest(t *testing.T, paths []string, once bool, passwords ...string) (*Manager, Snapshot) {
 	t.Helper()
 	m := NewManager()
-	snapshot, err := m.Start(paths, 15, once, "127.0.0.1")
+	password := ""
+	if len(passwords) > 0 {
+		password = passwords[0]
+	}
+	snapshot, err := m.Start(paths, 15, once, "127.0.0.1", password)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -279,7 +283,7 @@ func TestExpirationRevocationAndFreshTokens(t *testing.T) {
 		response.Body.Close()
 		t.Fatal("expired listener stayed open")
 	}
-	second, err := m.Start([]string{fixture(t, "second.txt", "world")}, 5, false, "127.0.0.1")
+	second, err := m.Start([]string{fixture(t, "second.txt", "world")}, 5, false, "127.0.0.1", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -438,7 +442,7 @@ func TestStopCancelsZIPPreparationWithoutPublishing(t *testing.T) {
 	m := NewManager()
 	t.Cleanup(m.Stop)
 	done := make(chan error, 1)
-	go func() { _, err := m.Start([]string{folder}, 15, false, "127.0.0.1"); done <- err }()
+	go func() { _, err := m.Start([]string{folder}, 15, false, "127.0.0.1", ""); done <- err }()
 	eventually(t, func() bool { m.mu.Lock(); defer m.mu.Unlock(); return m.preparing })
 	m.Stop()
 	select {
@@ -465,7 +469,7 @@ func TestInvalidSessionOptions(t *testing.T) {
 		{[]string{file}, 15, "8.8.8.8"}, {[]string{file}, 15, "invalid"},
 	} {
 		m := NewManager()
-		if _, err := m.Start(entry.paths, entry.minutes, false, entry.address); err == nil {
+		if _, err := m.Start(entry.paths, entry.minutes, false, entry.address, ""); err == nil {
 			m.Stop()
 			t.Fatalf("accepted invalid options: %+v", entry)
 		}

@@ -11,14 +11,16 @@ RoomDrop is a small Wails 3 desktop utility for Windows, macOS, and Linux. Drop 
 ## Sending files
 
 1. Connect both devices to the same local network.
-2. Choose a session lifetime: 5, 15, or 30 minutes, or 1 hour. Optionally enable **One-time download**.
+2. Choose a session lifetime: 5, 15, or 30 minutes, or 1 hour. Optionally enable **One-time download** or **Password protection**. Enter a download password before choosing files if protection is enabled.
 3. Drop files or folders onto the drop zone, or use the native file picker. A sharing session starts automatically.
-4. Share the QR code or use **Copy** to copy the full link. The recipient opens the page and chooses **Download**.
+4. Share the QR code or use **Copy** to copy the full link. For protected sessions, share the password separately. The recipient opens the page, enters the password if required, and chooses **Download**.
 5. Watch real transfer progress in RoomDrop. Choose **Stop sharing** to revoke the link and cancel ongoing transfers. Closing the window also stops sharing and leaves RoomDrop in the system tray.
 
 Single files download in their original format. Multiple files and folders are bundled into one ZIP, including empty directories. ZIP creation uses temporary disk space and can be cancelled. The temporary ZIP is removed when the session ends normally; a forced process termination or crash can leave a `roomdrop-*.zip` file in your OS temporary directory. Original files are never removed.
 
 One-time sessions allow one active download. They close after the complete payload has been sent to the browser; opening or previewing the page does not consume the link. Failed transfers can be retried until the session expires. A completed transfer confirms bytes were sent to the browser, not that the recipient saved the file.
+
+Password protection applies to downloads; filenames and sizes remain visible on the sharing page. Incorrect passwords do not start a transfer or consume a one-time link. After five incorrect attempts, the session pauses password attempts for 30 seconds. Passwords stay out of sharing links and QR codes, and RoomDrop never saves them to disk. Starting a new drop clears the password setting.
 
 ## System tray
 
@@ -30,8 +32,8 @@ Closing the window stops sharing but keeps the tray icon available. **Quit RoomD
 
 - Both devices must be able to reach one another. Guest Wi-Fi, client isolation, VPNs, and restrictive firewalls may prevent transfers. Allow RoomDrop through your firewall on **private networks** when appropriate.
 - If you have several adapters, choose the correct address in Settings before starting a drop. RoomDrop remembers your selected adapter across restarts and follows its current IP address. If it is temporarily unavailable, an available adapter is selected without erasing your preference. RoomDrop binds only to that IPv4 adapter and a temporary OS-assigned port.
-- Links contain a cryptographically random 256-bit token. Anyone with that link on the reachable local network can download. Keep it private.
-- Transfers use local HTTP and are **not encrypted**. Use a trusted network. RoomDrop rejects public source addresses, but this does not authenticate devices or protect against an on-path observer.
+- Links contain a cryptographically random 256-bit token. Anyone with that link on the reachable local network can download unless password protection is enabled. Keep it private.
+- Transfers use local HTTP and are **not encrypted**, including download passwords. Use a trusted network. RoomDrop rejects public source addresses, but this does not authenticate devices or protect against an on-path observer.
 - Keep RoomDrop open and the computer awake while sharing. Keep single source files unchanged during a session. Symbolic links and special files are rejected; choose their original files instead.
 - Activity and selections are held only in memory. No database, accounts, external fonts, analytics, or cloud services are used.
 

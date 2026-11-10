@@ -17,6 +17,7 @@ export const idle: Snapshot = {
   url: "",
   expiresAt: new Date(0),
   once: false,
+  passwordProtected: false,
   name: "",
   size: 0,
   items: [],
